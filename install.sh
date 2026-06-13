@@ -25,7 +25,8 @@ print_success "Base dependencies installed."
 # Copy configuration files
 print_info "Copying configuration files..."
 cp .bashrc ~/.bashrc
-print_success "Copied .bashrc to ~/.bashrc"
+cp .gitconfig ~/.gitconfig
+print_success "Copied .bashrc and .gitconfig to home directory."
 
 # Install OpenSSH Server
 print_info "Installing OpenSSH Server..."

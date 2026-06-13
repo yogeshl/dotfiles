@@ -1,0 +1,7 @@
+[user]
+    name = yogeshl
+    email = yogeshl@users.noreply.github.com
+[init]
+    defaultBranch = main
+[core]
+    editor = nano
