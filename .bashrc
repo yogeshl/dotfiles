@@ -15,4 +15,4 @@ parse_git_branch() {
 alias ssh-copy="ssh-copy-id -i ~/.ssh/id_rsa.pub \$(grep -oP 'Host \K.*' ~/.ssh/config | fzf)"
 
 # Initialize Oh My Posh with a default theme
-eval "$(oh-my-posh init bash --config ~/.poshthemes/robbyrussell.omp.json)"
+eval "$(oh-my-posh init bash --config ~/.poshthemes/stelbent.minimal.omp.json)"

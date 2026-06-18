@@ -63,6 +63,21 @@ sudo ./aws/install
 rm -rf awscliv2.zip aws
 print_success "AWS CLI installed successfully."
 
+# Install Terraform
+print_info "Installing Terraform..."
+wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo "$VERSION_CODENAME") main" | sudo tee /etc/apt/sources.list.d/hashicorp.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y terraform
+print_success "Terraform installed successfully."
+
+# Install kubectl
+print_info "Installing kubectl..."
+curl -fsSLO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+print_success "kubectl installed successfully."
+
 # Install Node Version Manager (nvm) and npm
 print_info "Installing Node Version Manager (nvm) and Node.js..."
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -89,11 +104,11 @@ sudo wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/
 sudo chmod +x /usr/local/bin/oh-my-posh
 print_success "Oh My Posh installed successfully."
 
-# Download Oh My Posh Minimal Theme (robbyrussell)
+# Download Oh My Posh Minimal Theme (stelbent.minimal)
 print_info "Downloading Oh My Posh minimal theme..."
 mkdir -p ~/.poshthemes
-wget -q https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/robbyrussell.omp.json -O ~/.poshthemes/robbyrussell.omp.json
-print_success "Theme downloaded to ~/.poshthemes/robbyrussell.omp.json."
+wget -q https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/stelbent.minimal.omp.json -O ~/.poshthemes/stelbent.minimal.omp.json
+print_success "Theme downloaded to ~/.poshthemes/stelbent.minimal.omp.json."
 
 
 print_success "Setup complete! Please log out and back in for all changes to take effect."
