@@ -6,6 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a personal dotfiles repository that automates development environment setup on Debian/Ubuntu-based Linux machines. It consists of a single installer script plus the config files it deploys — there is no build system, package manager, or test suite.
 
+## Documentation maintenance (required)
+
+This repo has no CI, so its docs only stay accurate if edits keep them in sync manually. On **every** change to `install.sh` (new/removed/renamed tool, changed detection logic, changed usage flow, etc.):
+
+- Update `README.md`'s "Included Tools and Configurations" and "Uninstallation" sections to match the new behavior.
+- Update this `CLAUDE.md` if the change affects the architecture, conventions, or "Adding a new tool" steps described below (e.g. a new install pattern, a new mandatory step, a change to the selection UI).
+
+Treat these doc updates as part of the change itself, not a follow-up — don't leave a PR/commit with `install.sh` changed but `README.md`/`CLAUDE.md` stale.
+
 ## Files
 
 - `install.sh` — the installer. Copies config files into `$HOME` and interactively installs developer tools.
