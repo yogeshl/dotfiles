@@ -29,7 +29,7 @@ Treat these doc updates as part of the change itself, not a follow-up — don't 
 ## Architecture of `install.sh`
 
 - **Mandatory setup** (not selectable) runs first and unconditionally: apt base deps (`unzip`, `bash-completion`, `whiptail`), then copying `.bashrc` and `.gitconfig` into `$HOME`.
-- **Selectable tools** are each implemented as an `install_<tool>()` function (e.g. `install_docker`, `install_aws`, `install_ssm_plugin`, `install_terraform`, `install_kubectl`, `install_nvm`, `install_uv`, `install_fzf`, `install_ohmyposh`, `install_ssh`). Every function follows the same pattern:
+- **Selectable tools** are each implemented as an `install_<tool>()` function (e.g. `install_docker`, `install_aws`, `install_ssm_plugin`, `install_terraform`, `install_kubectl`, `install_nvm`, `install_uv`, `install_fzf`, `install_ohmyposh`, `install_ssh`, `install_gh`, `install_glab`, `install_htop`). Every function follows the same pattern:
   1. Guard clause: detect if the tool is already installed (via `command -v`, `dpkg -s`, or checking for a directory like `~/.nvm`/`~/.fzf`) and `return` early with `print_skip` if so.
   2. Otherwise run the install commands (unchanged from the tool's official install instructions) and log with `print_info`/`print_success`.
 - **Selection UI**: after mandatory setup, a `whiptail --checklist` presents all tools with `ON` (pre-checked) by default. The user toggles with SPACE and confirms with ENTER.
@@ -40,7 +40,7 @@ Treat these doc updates as part of the change itself, not a follow-up — don't 
 1. Write an `install_<tool>()` function following the existing guard-clause + install pattern.
 2. Add an entry to the `TOOLS` array (`key "Description" ON`) used to build the whiptail checklist — keep new tools defaulted to `ON`.
 3. Add the matching `key) install_<tool> ;;` case in the dispatch loop.
-4. Update the whiptail checklist height/item-count args (`21 70 10` — height, width, list-height) if the number of items changes.
+4. Update the whiptail checklist height/item-count args (currently `24 70 13` — height, width, list-height) if the number of items changes.
 5. Update `README.md`'s "Included Tools and Configurations" and "Uninstallation" sections to match.
 
 ## Conventions

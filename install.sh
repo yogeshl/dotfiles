@@ -138,6 +138,48 @@ install_fzf() {
   print_success "fzf installed successfully."
 }
 
+install_gh() {
+  if command -v gh &>/dev/null; then
+    print_skip "GitHub CLI is already installed."
+    return
+  fi
+  print_info "Installing GitHub CLI..."
+  sudo mkdir -p -m 755 /etc/apt/keyrings
+  out=$(mktemp)
+  wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg
+  cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+  sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  sudo mkdir -p -m 755 /etc/apt/sources.list.d
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+  sudo apt-get update
+  sudo apt-get install -y gh
+  print_success "GitHub CLI installed successfully."
+}
+
+install_glab() {
+  if command -v glab &>/dev/null; then
+    print_skip "GitLab CLI is already installed."
+    return
+  fi
+  print_info "Installing GitLab CLI..."
+  glab_version=$(curl -fsSL "https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/releases/permalink/latest" | grep -oP '(?<="tag_name":")[^"]+')
+  curl -fsSLO "https://gitlab.com/gitlab-org/cli/-/releases/${glab_version}/downloads/glab_${glab_version#v}_linux_amd64.deb"
+  sudo dpkg -i "glab_${glab_version#v}_linux_amd64.deb" || sudo apt-get install -f -y
+  rm -f "glab_${glab_version#v}_linux_amd64.deb"
+  print_success "GitLab CLI installed successfully."
+}
+
+install_htop() {
+  if command -v htop &>/dev/null; then
+    print_skip "htop is already installed."
+    return
+  fi
+  print_info "Installing htop..."
+  sudo apt-get update
+  sudo apt-get install -y htop
+  print_success "htop installed successfully."
+}
+
 install_ohmyposh() {
   if command -v oh-my-posh &>/dev/null; then
     print_skip "Oh My Posh is already installed."
@@ -180,10 +222,13 @@ TOOLS=(
   uv        "uv (Python package manager)" ON
   fzf       "fzf (Fuzzy Finder)" ON
   ohmyposh  "Oh My Posh + minimal theme" ON
+  gh        "GitHub CLI" ON
+  glab      "GitLab CLI" ON
+  htop      "htop (interactive process viewer)" ON
 )
 
 CHOICES=$(whiptail --title "Select tools to install" --checklist \
-  "Use SPACE to toggle, ENTER to confirm" 21 70 10 \
+  "Use SPACE to toggle, ENTER to confirm" 24 70 13 \
   "${TOOLS[@]}" 3>&1 1>&2 2>&3)
 
 if [ $? -ne 0 ] || [ -z "$CHOICES" ]; then
@@ -201,6 +246,9 @@ else
       uv) install_uv ;;
       fzf) install_fzf ;;
       ohmyposh) install_ohmyposh ;;
+      gh) install_gh ;;
+      glab) install_glab ;;
+      htop) install_htop ;;
     esac
   done
 fi

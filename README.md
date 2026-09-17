@@ -14,6 +14,9 @@ This project automates the setup of your development environment, including cust
 - **uv:** An extremely fast Python package manager and installer.
 - **fzf (Fuzzy Finder):** An interactive command-line fuzzy finder used for searching through your command history and file system.
 - **Oh My Posh:** A custom prompt engine for the terminal. It is configured to use the `stelbent.minimal` theme by default.
+- **GitHub CLI (`gh`):** Command-line tool for interacting with GitHub (issues, PRs, releases, etc.).
+- **GitLab CLI (`glab`):** Command-line tool for interacting with GitLab (issues, MRs, pipelines, etc.).
+- **htop:** An interactive process viewer for monitoring system resources in the terminal.
 
 ## Usage
 
@@ -82,5 +85,21 @@ This project automates the setup of your development environment, including cust
    sudo apt-get purge -y openssh-server
    ```
 
-9. Revert `.bashrc` configuration:
+9. Remove GitHub CLI:
+   ```bash
+   sudo apt-get purge -y gh
+   sudo rm -f /etc/apt/sources.list.d/github-cli.list /etc/apt/keyrings/githubcli-archive-keyring.gpg
+   ```
+
+10. Remove GitLab CLI:
+    ```bash
+    sudo rm -f /usr/local/bin/glab
+    ```
+
+11. Remove htop:
+    ```bash
+    sudo apt-get purge -y htop
+    ```
+
+12. Revert `.bashrc` configuration:
    Open your `~/.bashrc` file and manually remove the lines appended by the installation script, then restart your terminal.
