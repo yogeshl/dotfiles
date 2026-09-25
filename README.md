@@ -5,7 +5,7 @@ This project automates the setup of your development environment, including cust
 ## Included Tools and Configurations
 
 - **OpenSSH Server:** Allows remote access to your machine. Enabled and started automatically.
-- **Docker & Docker Compose:** Containerization platform and orchestration tool. The current user is automatically added to the docker group so `sudo` is not required.
+- **Docker & Docker Compose:** Containerization platform and orchestration tool. The current user is automatically added to the docker group so `sudo` is not required. The apt repository is selected from `/etc/os-release`, so both Debian and Ubuntu (and their derivatives, via `ID_LIKE`) are supported.
 - **AWS CLI:** Command-line tool for interacting with AWS services.
 - **AWS SSM Session Manager plugin:** Lets the AWS CLI start Systems Manager sessions (e.g. `aws ssm start-session`) to connect to instances without SSH.
 - **Terraform:** Infrastructure-as-code tool for provisioning and managing cloud resources.
@@ -17,6 +17,8 @@ This project automates the setup of your development environment, including cust
 - **GitHub CLI (`gh`):** Command-line tool for interacting with GitHub (issues, PRs, releases, etc.).
 - **GitLab CLI (`glab`):** Command-line tool for interacting with GitLab (issues, MRs, pipelines, etc.).
 - **htop:** An interactive process viewer for monitoring system resources in the terminal.
+
+Base dependencies (`git`, `unzip`, `bash-completion`, `whiptail`) and your `.bashrc`/`.gitconfig` are always installed/copied — they are not part of the checklist.
 
 ## Usage
 
@@ -37,7 +39,9 @@ This project automates the setup of your development environment, including cust
 
 4. The script copies `.bashrc` and `.gitconfig` into your home directory, then shows a checklist of tools with everything pre-selected. Use SPACE to uncheck any tool you don't want installed, then press ENTER to confirm. Only the checked tools are installed, and any tool already present on the machine is skipped automatically.
 
-5. Log out and log back into your terminal for all changes, including the Docker group, Oh My Posh, fzf, and nvm configurations, to take effect.
+5. If any tool fails to install, the script prints the failures in red at the end and exits non-zero — nothing is reported as successful unless it actually installed.
+
+6. Log out and log back into your terminal for all changes, including the Docker group, Oh My Posh, fzf, and nvm configurations, to take effect.
 
 ## Uninstallation
 
@@ -68,11 +72,13 @@ This project automates the setup of your development environment, including cust
    sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras
    sudo rm -rf /var/lib/docker
    sudo rm -rf /etc/docker
+   sudo rm -f /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg
    ```
 
 6. Remove Terraform:
    ```bash
    sudo apt-get purge -y terraform
+   sudo rm -f /etc/apt/sources.list.d/hashicorp.list /usr/share/keyrings/hashicorp-archive-keyring.gpg
    ```
 
 7. Remove kubectl:
@@ -101,5 +107,10 @@ This project automates the setup of your development environment, including cust
     sudo apt-get purge -y htop
     ```
 
-12. Revert `.bashrc` configuration:
+12. Remove base dependencies (optional — these are common packages you may want to keep):
+    ```bash
+    sudo apt-get purge -y git unzip bash-completion whiptail
+    ```
+
+13. Revert `.bashrc` configuration:
    Open your `~/.bashrc` file and manually remove the lines appended by the installation script, then restart your terminal.

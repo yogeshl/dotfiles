@@ -3,6 +3,7 @@
 # Define colors for output
 INFO='\033[1;34m'    # Bold Blue
 SUCCESS='\033[1;32m' # Bold Green
+ERROR='\033[1;31m'   # Bold Red
 NC='\033[0m'         # No Color
 
 # Helper functions for logging
@@ -18,14 +19,35 @@ print_skip() {
   echo -e "${INFO}[SKIP] $1${NC}\n"
 }
 
+print_error() {
+  echo -e "${ERROR}[ERROR] $1${NC}\n" >&2
+}
+
+# apt wrappers that report failure instead of swallowing it. A single malformed
+# file in /etc/apt/sources.list.d breaks *every* later apt call, so a silent
+# failure here would otherwise cascade through the rest of the install.
+apt_update() {
+  if ! sudo apt-get update; then
+    print_error "'apt-get update' failed - check /etc/apt/sources.list.d for a malformed entry."
+    return 1
+  fi
+}
+
+apt_install() {
+  if ! sudo apt-get install -y "$@"; then
+    print_error "'apt-get install $*' failed."
+    return 1
+  fi
+}
+
 install_ssh() {
   if command -v sshd &>/dev/null; then
     print_skip "OpenSSH Server is already installed."
     return
   fi
   print_info "Installing OpenSSH Server..."
-  sudo apt-get update
-  sudo apt-get install -y openssh-server
+  apt_update || return 1
+  apt_install openssh-server || return 1
   sudo systemctl enable --now ssh
   print_success "OpenSSH Server installed and started."
 }
@@ -36,16 +58,29 @@ install_docker() {
     return
   fi
   print_info "Installing Docker..."
-  sudo apt-get update
-  sudo apt-get install -y ca-certificates curl gnupg
+  apt_update || return 1
+  apt_install ca-certificates curl gnupg || return 1
   sudo mkdir -m 0755 -p /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  # Docker publishes repos for "debian" and "ubuntu" only, so derivatives
+  # (Linux Mint, Pop!_OS, ...) must resolve to their upstream via ID_LIKE.
+  # UBUNTU_CODENAME is preferred over VERSION_CODENAME for the same reason:
+  # on a derivative, VERSION_CODENAME is the derivative's own release name.
+  docker_distro=$(. /etc/os-release && echo "$ID")
+  case $docker_distro in
+    debian | ubuntu) ;;
+    *) docker_distro=$(. /etc/os-release && echo "$ID_LIKE" | awk '{print $1}') ;;
+  esac
+  docker_codename=$(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+  if [ -z "$docker_distro" ] || [ -z "$docker_codename" ]; then
+    print_error "Could not determine the distribution/codename from /etc/os-release; skipping Docker."
+    return 1
+  fi
+  curl -fsSL "https://download.docker.com/linux/$docker_distro/gpg" | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
   echo \
-    "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-    "$(. /etc/lsb-release && echo "$CSCODENAME")" stable" | \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$docker_distro $docker_codename stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-  sudo apt-get update
-  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  apt_update || return 1
+  apt_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || return 1
   print_success "Docker installed successfully."
 
   print_info "Adding current user to the docker group..."
@@ -86,8 +121,8 @@ install_terraform() {
   print_info "Installing Terraform..."
   wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo "$VERSION_CODENAME") main" | sudo tee /etc/apt/sources.list.d/hashicorp.list > /dev/null
-  sudo apt-get update
-  sudo apt-get install -y terraform
+  apt_update || return 1
+  apt_install terraform || return 1
   print_success "Terraform installed successfully."
 }
 
@@ -151,8 +186,8 @@ install_gh() {
   sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
   sudo mkdir -p -m 755 /etc/apt/sources.list.d
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-  sudo apt-get update
-  sudo apt-get install -y gh
+  apt_update || return 1
+  apt_install gh || return 1
   print_success "GitHub CLI installed successfully."
 }
 
@@ -175,8 +210,8 @@ install_htop() {
     return
   fi
   print_info "Installing htop..."
-  sudo apt-get update
-  sudo apt-get install -y htop
+  apt_update || return 1
+  apt_install htop || return 1
   print_success "htop installed successfully."
 }
 
@@ -198,10 +233,10 @@ install_ohmyposh() {
 
 print_info "Starting dotfiles installation..."
 
-# Install base dependencies (unzip, fontconfig, bash-completion, whiptail)
+# Install base dependencies (git, unzip, bash-completion, whiptail)
 print_info "Installing base dependencies..."
-sudo apt-get update
-sudo apt-get install -y unzip bash-completion whiptail
+apt_update || exit 1
+apt_install git unzip bash-completion whiptail || exit 1
 print_success "Base dependencies installed."
 
 # Copy configuration files
@@ -230,12 +265,15 @@ TOOLS=(
 CHOICES=$(whiptail --title "Select tools to install" --checklist \
   "Use SPACE to toggle, ENTER to confirm" 24 70 13 \
   "${TOOLS[@]}" 3>&1 1>&2 2>&3)
+WHIPTAIL_STATUS=$?
 
-if [ $? -ne 0 ] || [ -z "$CHOICES" ]; then
+FAILED=()
+if [ $WHIPTAIL_STATUS -ne 0 ] || [ -z "$CHOICES" ]; then
   print_info "No tools selected. Skipping tool installation."
 else
   for choice in $CHOICES; do
-    case $(echo "$choice" | tr -d '"') in
+    key=$(echo "$choice" | tr -d '"')
+    case $key in
       ssh) install_ssh ;;
       docker) install_docker ;;
       aws) install_aws ;;
@@ -250,7 +288,14 @@ else
       glab) install_glab ;;
       htop) install_htop ;;
     esac
+    [ $? -ne 0 ] && FAILED+=("$key")
   done
+fi
+
+if [ ${#FAILED[@]} -gt 0 ]; then
+  print_error "Setup finished, but these tools failed to install: ${FAILED[*]}"
+  print_error "Re-run this script after resolving the errors above."
+  exit 1
 fi
 
 print_success "Setup complete! Please log out and back in for all changes to take effect."
